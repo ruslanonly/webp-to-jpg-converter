@@ -12,8 +12,8 @@ def webptojpg():
         return "Missing 'webpurl' parameter", 400
     
     response = requests.get(webp_url)
-    if response.status_code != 200:
-        return "Failed to download image", 404
+    if response.status_code >= 400:
+        return "Failed to download image", response.status_code
     
     image = Image.open(io.BytesIO(response.content))
     img_byte_arr = io.BytesIO()
