@@ -20,7 +20,7 @@ def webptojpg():
         if error_counter == 3:
             return "Failed to download image", response.status_code
 
-        time.sleep(1)
+        time.sleep(3)
         webp_url = request.args.get('webpurl')
         response = requests.get(webp_url)
 
