@@ -2,6 +2,7 @@ from flask import Flask, request, send_file
 from PIL import Image
 import requests
 import io
+import time
 
 app = Flask(__name__)
 
