@@ -12,8 +12,18 @@ def webptojpg():
         return "Missing 'webpurl' parameter", 400
     
     response = requests.get(webp_url)
-    if response.status_code >= 400:
-        return "Failed to download image", response.status_code
+
+    error_counter = 0
+
+    while response.status_code >= 400:
+        error_counter += 1
+        if error_counter == 3:
+            return "Failed to download image", response.status_code
+
+        time.sleep(1)
+        webp_url = request.args.get('webpurl')
+        response = requests.get(webp_url)
+
     
     image = Image.open(io.BytesIO(response.content))
     img_byte_arr = io.BytesIO()
