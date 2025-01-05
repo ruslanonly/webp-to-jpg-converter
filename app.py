@@ -1,37 +1,61 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, jsonify
 from PIL import Image
 import requests
+import os
 import io
 import time
+from threading import Thread
+from urllib.parse import urlparse
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = 'static'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/webptojpg', methods=['GET'])
 def webptojpg():
     webp_url = request.args.get('webpurl')
     if not webp_url:
-        return "Missing 'webpurl' parameter", 400
-    
-    response = requests.get(webp_url)
+        return jsonify({'error': "Missing 'webpurl' parameter"}), 400
 
-    error_counter = 0
+    try:
+        parsed_url = urlparse(webp_url)
+        original_filename = os.path.basename(parsed_url.path)
+        filename_without_ext = os.path.splitext(original_filename)[0]
+        filename = f"{filename_without_ext}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    while response.status_code >= 400:
-        error_counter += 1
-        if error_counter == 3:
-            return "Failed to download image", response.status_code
+        if os.path.exists(filepath):
+            return jsonify({'filename': filename, 'status': 'already_exists'}), 200
 
-        time.sleep(3)
-        webp_url = request.args.get('webpurl')
         response = requests.get(webp_url)
+        response.raise_for_status()
+        image = Image.open(io.BytesIO(response.content))
 
-    
-    image = Image.open(io.BytesIO(response.content))
-    img_byte_arr = io.BytesIO()
-    image.convert('RGB').save(img_byte_arr, format='JPEG')
-    img_byte_arr.seek(0)
+        image.convert('RGB').save(filepath, format='JPEG')
 
-    return send_file(img_byte_arr, mimetype='image/jpeg', as_attachment=True, download_name='converted.jpg')
+        return jsonify({'filename': filename, 'status': 'success'}), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f"Failed to download image: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({'error': f"Failed to process image: {str(e)}"}), 500
+
+def cleanup_static_folder():
+    while True:
+        time.sleep(3600)
+        try:
+            for filename in os.listdir(UPLOAD_FOLDER):
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    print(f"Удалён файл: {file_path}")
+        except Exception as e:
+            print(f"Ошибка при очистке папки: {e}")
 
 if __name__ == '__main__':
+    cleanup_thread = Thread(target=cleanup_static_folder, daemon=True)
+    cleanup_thread.start()
+
     app.run(host='0.0.0.0', port=5000)
