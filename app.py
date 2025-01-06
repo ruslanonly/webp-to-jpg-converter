@@ -7,6 +7,11 @@ import time
 from threading import Thread
 from urllib.parse import urlparse
 
+image_request_headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+    "Referer": "https://www.taobao.com/",
+}
+
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'static'
@@ -30,7 +35,7 @@ def webptojpg():
         if os.path.exists(filepath):
             return jsonify({'filename': filename, 'status': 'already_exists'}), 200
 
-        response = requests.get(webp_url)
+        response = requests.get(webp_url, headers=image_request_headers)
         response.raise_for_status()
         image = Image.open(io.BytesIO(response.content))
 
