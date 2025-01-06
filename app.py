@@ -49,7 +49,7 @@ def webptojpg():
 
 def cleanup_static_folder():
     while True:
-        time.sleep(3600)
+        time.sleep(86400)
         try:
             for filename in os.listdir(UPLOAD_FOLDER):
                 file_path = os.path.join(UPLOAD_FOLDER, filename)
